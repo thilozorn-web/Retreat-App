@@ -3,7 +3,7 @@
    Begleitphase (Phase B) ohne Internet funktioniert.
    Version bump = neue Inhalte werden nachgeladen.
 --------------------------------------------------- */
-const CACHE_VERSION = "retreat-v3";
+const CACHE_VERSION = "retreat-v4";
 
 const APP_SHELL = [
   "./",
@@ -13,8 +13,8 @@ const APP_SHELL = [
   "./tagesplan.html",
   "./woop.html",
   "./woop-vordruck.pdf",
-  "./css/style.css",
-  "./js/content-data.js",
+  "./css/style.css?v=2",
+  "./js/content-data.js?v=2",
   "./manifest.webmanifest",
   "./icon.svg"
 ];

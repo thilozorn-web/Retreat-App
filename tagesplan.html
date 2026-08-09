@@ -9,7 +9,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body>
 
@@ -69,6 +69,7 @@
           <button type="button" class="btn-next" id="generateBtn">Tagesplan erstellen</button>
           <a class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;" href="index.html">Erst den Fragebogen ausfüllen →</a>
         </div>
+        <div id="setupError" style="display:none; margin-top:14px; padding:12px 16px; border-radius:10px; background:#F6E9E4; color:#8A3E22; font-size:13px;"></div>
       </div>
 
       <!-- ---------- Live-Guide: wird gezeigt, sobald ein Plan gespeichert ist ---------- -->
@@ -93,7 +94,7 @@
   </main>
 </div>
 
-<script src="js/content-data.js"></script>
+<script src="js/content-data.js?v=2"></script>
 <script>
 const PLAN_KEY = 'retreat-tagesplan-v1';
 const QUIZ_KEY = 'retreat-quiz-result-v1';
@@ -123,16 +124,26 @@ function savePlan(plan) {
 }
 
 document.getElementById('generateBtn').addEventListener('click', () => {
-  const tage = Math.min(7, Math.max(1, parseInt(document.getElementById('tageInput').value, 10) || 1));
-  const wecken = document.getElementById('weckenInput').value || "07:00";
-  const modus = quizResult ? quizResult.modus : document.getElementById('modusSelect').value;
-  const bewegungTyp = quizResult ? quizResult.bewegung : document.getElementById('bewegungSelect').value;
-  const ort = quizResult ? quizResult.ort : null;
+  const errBox = document.getElementById('setupError');
+  errBox.style.display = 'none';
+  try {
+    if (typeof generateTagesplan !== 'function') {
+      throw new Error('Die Tagesplan-Logik (generateTagesplan) wurde nicht geladen — vermutlich eine veraltete, gecachte Version von js/content-data.js. Bitte Website-Daten für diese Seite löschen und neu laden.');
+    }
+    const tage = Math.min(7, Math.max(1, parseInt(document.getElementById('tageInput').value, 10) || 1));
+    const wecken = document.getElementById('weckenInput').value || "07:00";
+    const modus = quizResult ? quizResult.modus : document.getElementById('modusSelect').value;
+    const bewegungTyp = quizResult ? quizResult.bewegung : document.getElementById('bewegungSelect').value;
+    const ort = quizResult ? quizResult.ort : null;
 
-  const days = generateTagesplan({ tage, wecken, modus, bewegungTyp });
-  const plan = { tage, wecken, modus, bewegungTyp, ort, days, currentDayIndex: 0, createdAt: Date.now() };
-  savePlan(plan);
-  renderGuide(plan);
+    const days = generateTagesplan({ tage, wecken, modus, bewegungTyp });
+    const plan = { tage, wecken, modus, bewegungTyp, ort, days, currentDayIndex: 0, createdAt: Date.now() };
+    savePlan(plan);
+    renderGuide(plan);
+  } catch (e) {
+    errBox.textContent = 'Fehler: ' + e.message;
+    errBox.style.display = 'block';
+  }
 });
 
 /* --- Lookup-Hilfen: ausführliche Anleitung zu einem Block finden --- */
