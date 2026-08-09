@@ -1,0 +1,19 @@
+{
+  "name": "Retreat – Selbstständig planen",
+  "short_name": "Retreat",
+  "description": "Planungsfragebogen und offline-fähige Begleitphase für einen selbstständig organisierten Retreat.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EFEDE4",
+  "theme_color": "#EFEDE4",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

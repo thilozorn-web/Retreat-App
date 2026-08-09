@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retreat · Planungsphase</title>
+<meta name="theme-color" content="#EFEDE4">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="spine" aria-label="Kneipp-Säulen – roter Faden durch die App">
+    <div class="spine-line"></div>
+    <div class="node" data-pillar="wasser"><span class="node-tip">Wasser</span></div>
+    <div class="node" data-pillar="bewegung"><span class="node-tip">Bewegung</span></div>
+    <div class="node" data-pillar="ernaehrung"><span class="node-tip">Ernährung</span></div>
+    <div class="node" data-pillar="heilpflanzen"><span class="node-tip">Heilpflanzen</span></div>
+    <div class="node" data-pillar="lebensordnung"><span class="node-tip">Lebensordnung</span></div>
+  </nav>
+
+  <main class="stage">
+    <div class="card">
+
+      <div id="quiz">
+        <header class="intro">
+          <span class="label">Planungsphase</span>
+          <h1>Bevor es losgeht.</h1>
+          <p>Fünf kurze Fragen. Daraus ergibt sich, wo und wie dein Retreat am besten funktioniert — daheim, auf dem Campingplatz oder im Hotel.</p>
+        </header>
+
+        <div class="progress" id="progress"></div>
+
+        <span class="q-num label" id="qNum"></span>
+        <h2 class="q-text" id="qText"></h2>
+        <div class="options" id="qOptions"></div>
+
+        <div class="nav-row">
+          <button class="btn-back" id="btnBack">← zurück</button>
+          <button class="btn-next" id="btnNext" disabled>weiter</button>
+        </div>
+      </div>
+
+      <div class="result" id="result">
+        <span class="result-badge" id="resBadge"></span>
+        <h2 id="resTitle"></h2>
+        <p class="result-lede" id="resLede"></p>
+
+        <div class="why">
+          <h3>Warum</h3>
+          <ul id="resWhy"></ul>
+        </div>
+
+        <div class="why" id="equipBox" style="display:none;">
+          <h3>Zu bedenken</h3>
+          <ul id="resEquip"></ul>
+        </div>
+
+        <span class="modus-tag" id="resModus"></span>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:24px;">
+          <a class="btn-next" style="text-decoration:none; display:inline-block;" href="begleitphase.html">Weiter zur Begleitphase →</a>
+          <a class="btn-next" style="text-decoration:none; display:inline-block; background:var(--water);" href="packlisten.html">Packliste ansehen →</a>
+          <button class="restart" id="btnRestart">Neu beantworten</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+/* ---------------------------------------------------
+   Fragebogen-Daten & Empfehlungslogik (regelbasiert,
+   keine externen APIs / keine KI-Aufrufe – Phase 1
+   soll 0 € Betriebskosten haben)
+--------------------------------------------------- */
+const questions = [
+  {
+    id: "ruhe",
+    text: "Wie viel Abstand vom Alltag brauchst du gerade?",
+    pillar: "lebensordnung",
+    options: [
+      { label: "Ich will einfach kurz durchatmen", score: { daheim:2, camping:0, hotel:0 } },
+      { label: "Ich brauche echten Abstand, aber nicht weit weg", score: { daheim:0, camping:1, hotel:1 } },
+      { label: "Ich will komplett raus aus meinem Alltag", score: { daheim:0, camping:2, hotel:1 } },
+    ]
+  },
+  {
+    id: "natur",
+    text: "Naturverbunden oder komfortorientiert?",
+    pillar: "wasser",
+    options: [
+      { label: "Am liebsten mit Komfort, drinnen", score: { daheim:1, camping:0, hotel:2 } },
+      { label: "Etwas Natur, aber ein Dach über dem Kopf", score: { daheim:1, camping:1, hotel:1 } },
+      { label: "Am liebsten direkt in der Natur", score: { daheim:0, camping:2, hotel:0 } },
+    ]
+  },
+  {
+    id: "budget",
+    text: "Wie viel Budget steht zur Verfügung?",
+    pillar: "lebensordnung",
+    options: [
+      { label: "Kein zusätzliches Budget", score: { daheim:2, camping:0, hotel:0 } },
+      { label: "Ein kleines Budget", score: { daheim:0, camping:2, hotel:0 } },
+      { label: "Ein größeres Budget", score: { daheim:0, camping:0, hotel:2 } },
+    ]
+  },
+  {
+    id: "zeit",
+    text: "Wie viel Zeit steht zur Verfügung?",
+    pillar: "lebensordnung",
+    options: [
+      { label: "Kürzere Einheiten über mehrere Wochen (Alltags-Modus)", modus: "alltag" },
+      { label: "Ein ganzes Wochenende am Stück (Intensiv-Modus)", modus: "intensiv" },
+    ]
+  },
+  {
+    id: "bewegung",
+    text: "Sanfte oder intensive Bewegung?",
+    pillar: "bewegung",
+    options: [
+      { label: "Sanft — Yoga, Tai-Chi", bewegung: "sanft" },
+      { label: "Intensiv — Laufen, Kraft", bewegung: "intensiv" },
+      { label: "Beides mischen", bewegung: "beides" },
+    ]
+  },
+];
+
+const orte = {
+  daheim: {
+    badge: "Empfehlung",
+    title: "Daheim, mit festem Tagesplan.",
+    lede: "Kein Ortswechsel nötig — dafür ein klar durchgeplanter Tag, der die Struktur schafft, die sonst der neue Ort geben würde.",
+    vorlauf: "Planungsvorlauf: 1–2 Tage reichen."
+  },
+  camping: {
+    badge: "Empfehlung",
+    title: "Campingplatz, mehr Naturnähe.",
+    lede: "Der Ortswechsel und die Natur ringsum übernehmen einen Teil der Wirkung — dafür etwas mehr Vorbereitung nötig.",
+    vorlauf: "Planungsvorlauf: 1–2 Wochen, besonders in der Hauptsaison."
+  },
+  hotel: {
+    badge: "Empfehlung",
+    title: "Hotel, mit mehr Komfort.",
+    lede: "Keine Selbstversorgung nötig — der Kopf bleibt frei für Meditation, Reflexion und Bewegung statt fürs Organisieren.",
+    vorlauf: "Planungsvorlauf: 1–2 Wochen, besonders in der Hauptsaison."
+  }
+};
+
+let current = 0;
+const answers = new Array(questions.length).fill(null);
+
+const qNum = document.getElementById('qNum');
+const qText = document.getElementById('qText');
+const qOptions = document.getElementById('qOptions');
+const progress = document.getElementById('progress');
+const btnBack = document.getElementById('btnBack');
+const btnNext = document.getElementById('btnNext');
+const quizEl = document.getElementById('quiz');
+const resultEl = document.getElementById('result');
+
+function buildProgress(){
+  progress.innerHTML = '';
+  questions.forEach(()=>{
+    const i = document.createElement('i');
+    i.innerHTML = '<b></b>';
+    progress.appendChild(i);
+  });
+}
+buildProgress();
+
+function setPillar(pillar){
+  document.querySelectorAll('.node').forEach(n=>{
+    n.dataset.active = (n.dataset.pillar === pillar) ? "true" : "false";
+  });
+}
+
+function render(){
+  const q = questions[current];
+  qNum.textContent = `Frage ${current+1} / ${questions.length}`;
+  qText.textContent = q.text;
+  setPillar(q.pillar);
+
+  qOptions.innerHTML = '';
+  q.options.forEach((opt, idx)=>{
+    const b = document.createElement('button');
+    b.className = 'opt' + (answers[current]===idx ? ' picked' : '');
+    b.textContent = opt.label;
+    b.onclick = () => {
+      answers[current] = idx;
+      render();
+    };
+    qOptions.appendChild(b);
+  });
+
+  progress.querySelectorAll('i b').forEach((b,i)=>{
+    b.style.width = (i < current || (i===current)) ? (i<current ? '100%' : (answers[current]!==null?'100%':'0%')) : '0%';
+  });
+
+  btnBack.disabled = current===0;
+  btnNext.disabled = answers[current]===null;
+  btnNext.textContent = current===questions.length-1 ? 'Ergebnis ansehen' : 'weiter';
+}
+
+btnBack.onclick = () => { if(current>0){ current--; render(); } };
+btnNext.onclick = () => {
+  if(answers[current]===null) return;
+  if(current < questions.length-1){
+    current++;
+    render();
+  } else {
+    showResult();
+  }
+};
+
+function showResult(){
+  const totals = { daheim:0, camping:0, hotel:0 };
+  let modus = null, bewegung = null;
+
+  questions.forEach((q, i)=>{
+    const chosen = q.options[answers[i]];
+    if(chosen.score){
+      totals.daheim += chosen.score.daheim;
+      totals.camping += chosen.score.camping;
+      totals.hotel += chosen.score.hotel;
+    }
+    if(chosen.modus) modus = chosen.modus;
+    if(chosen.bewegung) bewegung = chosen.bewegung;
+  });
+
+  const ranking = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  const winner = ranking[0][0];
+  const ort = orte[winner];
+
+  document.getElementById('resBadge').textContent = ort.badge;
+  document.getElementById('resTitle').textContent = ort.title;
+  document.getElementById('resLede').textContent = ort.lede;
+
+  const why = document.getElementById('resWhy');
+  why.innerHTML = '';
+  questions.forEach((q,i)=>{
+    const chosen = q.options[answers[i]];
+    if(chosen.score){
+      const li = document.createElement('li');
+      li.textContent = `${q.text} → „${chosen.label}“`;
+      why.appendChild(li);
+    }
+  });
+  const vorlaufLi = document.createElement('li');
+  vorlaufLi.textContent = ort.vorlauf;
+  why.appendChild(vorlaufLi);
+
+  const equipBox = document.getElementById('equipBox');
+  const equip = document.getElementById('resEquip');
+  equip.innerHTML = '';
+  if(bewegung === 'intensiv' || bewegung === 'beides'){
+    equipBox.style.display = 'block';
+    const li = document.createElement('li');
+    li.textContent = winner === 'daheim'
+      ? 'Für intensive Bewegung: Laufschuhe/Kraft-Equipment bereitlegen, das du daheim hast.'
+      : 'Für intensive Bewegung unterwegs: Laufschuhe und ggf. leichtes Kraft-Equipment einpacken.';
+    equip.appendChild(li);
+  }
+
+  document.getElementById('resModus').textContent =
+    modus === 'intensiv' ? 'Intensiv-Modus · kompaktes Wochenende' : 'Alltags-Modus · kurze Einheiten über mehrere Wochen';
+
+  setPillar(bewegung ? 'bewegung' : null);
+
+  quizEl.style.display = 'none';
+  resultEl.style.display = 'block';
+}
+
+document.getElementById('btnRestart').onclick = () => {
+  current = 0;
+  answers.fill(null);
+  resultEl.style.display = 'none';
+  quizEl.style.display = 'block';
+  render();
+};
+
+render();
+
+/* Service Worker für Offline-Fähigkeit (Phase B baut hierauf auf) */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>

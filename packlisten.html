@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retreat · Packlisten</title>
+<meta name="theme-color" content="#EFEDE4">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .pack-group{margin-bottom:16px;}
+  .pack-group h4{font-family:'IBM Plex Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--water); margin:0 0 8px; font-weight:500;}
+  .pack-group ul{margin:0; padding-left:0; list-style:none;}
+  .pack-group li{
+    padding:6px 0 6px 24px; position:relative; font-size:14.5px; border-bottom:1px solid #EEEBDF;
+  }
+  .pack-group li:last-child{border-bottom:none;}
+  .pack-group li::before{
+    content:""; position:absolute; left:2px; top:12px; width:7px; height:7px;
+    border:1.5px solid var(--sage); border-radius:2px;
+  }
+  .biwak-box{
+    margin-top:36px;
+    border:1px solid var(--ochre);
+    border-radius:var(--radius);
+    background:#FBF3E9;
+    padding:22px;
+  }
+  .biwak-box h3{font-size:19px; margin-bottom:6px;}
+  .biwak-box .intro-txt{font-size:14px; color:var(--ink-soft); margin-bottom:14px;}
+  .biwak-wichtig{
+    font-size:13.5px; background:#F3E4CC; border-radius:10px; padding:12px 14px; margin-bottom:16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="spine" aria-label="Kneipp-Säulen – roter Faden durch die App">
+    <div class="spine-line"></div>
+    <div class="node" data-pillar="wasser"><span class="node-tip">Wasser</span></div>
+    <div class="node" data-pillar="bewegung"><span class="node-tip">Bewegung</span></div>
+    <div class="node" data-pillar="ernaehrung"><span class="node-tip">Ernährung</span></div>
+    <div class="node" data-pillar="heilpflanzen"><span class="node-tip">Heilpflanzen</span></div>
+    <div class="node" data-pillar="lebensordnung" data-active="true"><span class="node-tip">Lebensordnung</span></div>
+  </nav>
+
+  <main class="stage">
+    <div class="card" style="max-width:600px;">
+      <a class="back-link" href="index.html">← zurück zur Planung</a>
+
+      <header class="intro">
+        <span class="label">Vorbereitung</span>
+        <h1>Packlisten.</h1>
+        <p>Passend zur jeweiligen Empfehlung aus dem Fragebogen — daheim, Campingplatz oder Hotel.</p>
+      </header>
+
+      <div class="baustein-list" id="listPack"></div>
+
+      <div class="biwak-box" id="biwakBox"></div>
+    </div>
+  </main>
+</div>
+
+<script src="js/content-data.js"></script>
+<script>
+const list = document.getElementById('listPack');
+
+['daheim','camping','hotel'].forEach((key) => {
+  const p = packlisten[key];
+  const el = document.createElement('div');
+  el.className = 'baustein';
+
+  const groupsHtml = p.gruppen.map(g => `
+    <div class="pack-group">
+      <h4>${g.h}</h4>
+      <ul>${g.items.map(i => `<li>${i}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="baustein-head">
+      <div class="baustein-title">${p.titel}</div>
+      <svg class="baustein-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M4 6L8 10L12 6" stroke="#93A99A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="baustein-body">
+      <div class="baustein-body-inner">
+        <p style="margin:0 0 16px; color:var(--ink-soft); font-size:14px;">${p.intro}</p>
+        ${groupsHtml}
+      </div>
+    </div>
+  `;
+
+  el.querySelector('.baustein-head').addEventListener('click', () => {
+    const wasOpen = el.classList.contains('open');
+    list.querySelectorAll('.baustein.open').forEach(o => {
+      o.classList.remove('open');
+      o.querySelector('.baustein-body').style.maxHeight = null;
+    });
+    if (!wasOpen) {
+      el.classList.add('open');
+      const body = el.querySelector('.baustein-body');
+      body.style.maxHeight = body.scrollHeight + 40 + 'px';
+    }
+  });
+
+  list.appendChild(el);
+});
+
+const bw = biwakHinweis;
+document.getElementById('biwakBox').innerHTML = `
+  <h3>${bw.titel}</h3>
+  <p class="intro-txt">${bw.intro}</p>
+  <p class="biwak-wichtig">${bw.wichtig}</p>
+  ${bw.gruppen.map(g => `
+    <div class="pack-group">
+      <h4>${g.h}</h4>
+      <ul>${g.items.map(i => `<li>${i}</li>`).join('')}</ul>
+    </div>
+  `).join('')}
+`;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
