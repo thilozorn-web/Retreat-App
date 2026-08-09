@@ -33,7 +33,7 @@
         <p>Diese drei Elemente sind bei jedem Retreat dabei — unabhängig von Ort und Modus. Meditation, Reflexion und am Ende die Zieldefinition.</p>
       </header>
 
-      <div class="modus-note">Für den Retreat selbst: diese Seite vorher einmal öffnen, dann funktioniert alles auch ohne Internetverbindung (Offline-Caching aktiv).</div>
+      <div class="modus-note">Für den Retreat selbst: diese Seite vorher einmal öffnen, dann funktioniert alles auch ohne Internetverbindung (Offline-Caching aktiv). Zum Nachlesen ist diese Seite gedacht — für die Live-Führung durch den Tag gibt es den <a href="tagesplan.html" style="color:var(--water);">Tagesplan</a>.</div>
 
       <div class="baustein-list" id="list"></div>
 
@@ -107,6 +107,17 @@ function renderList(targetEl, items) {
 renderList(document.getElementById('list'), bausteine);
 renderList(document.getElementById('listFlex'), flexibleBausteine);
 renderList(document.getElementById('listRezepte'), rezepte);
+
+/* CTA-Link zum WOOP-Vordruck direkt im passenden Baustein ergänzen */
+document.querySelectorAll('#list .baustein').forEach(el => {
+  if (el.querySelector('.baustein-title').textContent.includes('WOOP')) {
+    const a = document.createElement('a');
+    a.href = 'woop.html';
+    a.className = 'baustein-cta';
+    a.textContent = 'Zum WOOP-Vordruck →';
+    el.querySelector('.baustein-body-inner').appendChild(a);
+  }
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

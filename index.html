@@ -62,7 +62,8 @@
 
         <span class="modus-tag" id="resModus"></span>
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:24px;">
-          <a class="btn-next" style="text-decoration:none; display:inline-block;" href="begleitphase.html">Weiter zur Begleitphase →</a>
+          <a class="btn-next" style="text-decoration:none; display:inline-block; background:var(--ochre);" href="tagesplan.html">Tagesplan erstellen →</a>
+          <a class="btn-next" style="text-decoration:none; display:inline-block;" href="begleitphase.html">Bausteine ansehen →</a>
           <a class="btn-next" style="text-decoration:none; display:inline-block; background:var(--water);" href="packlisten.html">Packliste ansehen →</a>
           <button class="restart" id="btnRestart">Neu beantworten</button>
         </div>
@@ -273,6 +274,13 @@ function showResult(){
 
   quizEl.style.display = 'none';
   resultEl.style.display = 'block';
+
+  /* Ergebnis lokal speichern, damit der Tagesplan-Generator ort/modus/bewegung kennt */
+  try {
+    localStorage.setItem('retreat-quiz-result-v1', JSON.stringify({
+      ort: winner, modus, bewegung, savedAt: Date.now()
+    }));
+  } catch (e) { /* Speicher nicht verfügbar – Tagesplan fragt dann manuell nach */ }
 }
 
 document.getElementById('btnRestart').onclick = () => {

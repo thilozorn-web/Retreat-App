@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retreat · Tagesplan</title>
+<meta name="theme-color" content="#EFEDE4">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="spine" aria-label="Kneipp-Säulen – roter Faden durch die App">
+    <div class="spine-line"></div>
+    <div class="node" data-pillar="wasser"><span class="node-tip">Wasser</span></div>
+    <div class="node" data-pillar="bewegung"><span class="node-tip">Bewegung</span></div>
+    <div class="node" data-pillar="ernaehrung"><span class="node-tip">Ernährung</span></div>
+    <div class="node" data-pillar="heilpflanzen"><span class="node-tip">Heilpflanzen</span></div>
+    <div class="node" data-pillar="lebensordnung" data-active="true"><span class="node-tip">Lebensordnung</span></div>
+  </nav>
+
+  <main class="stage">
+    <div class="card" style="max-width:600px;">
+      <a class="back-link" href="index.html">← zurück zur Planung</a>
+
+      <!-- ---------- Setup: wird nur gezeigt, solange kein Plan existiert ---------- -->
+      <div id="setup">
+        <header class="intro">
+          <span class="label">Tagesplan</span>
+          <h1>Dein Ablauf.</h1>
+          <p>Aus deinen Angaben und den Bausteinen aus der Begleitphase baut die App dir einen Tag-für-Tag-Ablauf mit Uhrzeiten — und führt dich live hindurch.</p>
+        </header>
+
+        <div class="modus-note" id="quizInfo">Lädt …</div>
+
+        <div class="woop-step">
+          <div class="woop-step-head"><h3 style="margin-left:0;">Anzahl Tage</h3></div>
+          <p class="woop-hint">Wie viele Tage soll der Plan abdecken? (1–7)</p>
+          <input type="number" id="tageInput" min="1" max="7" value="2" style="width:100px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:15px;">
+        </div>
+
+        <div class="woop-step">
+          <div class="woop-step-head"><h3 style="margin-left:0;">Weckzeit</h3></div>
+          <p class="woop-hint">Ab wann beginnt dein Tag? Alle Programmpunkte werden ab hier durchgerechnet.</p>
+          <input type="time" id="weckenInput" value="07:00" style="padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:15px;">
+        </div>
+
+        <div class="woop-step" id="manualFallback" style="display:none;">
+          <div class="woop-step-head"><h3 style="margin-left:0;">Modus & Bewegung</h3></div>
+          <p class="woop-hint">Kein Fragebogen-Ergebnis gefunden — bitte kurz manuell wählen.</p>
+          <div class="woop-habits">
+            <select id="modusSelect" style="padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:14px;">
+              <option value="intensiv">Intensiv-Modus (kompaktes Wochenende)</option>
+              <option value="alltag">Alltags-Modus (kurze Einheiten, mehrere Tage)</option>
+            </select>
+            <select id="bewegungSelect" style="padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:14px;">
+              <option value="beides">Bewegung: sanft & intensiv gemischt</option>
+              <option value="sanft">Bewegung: sanft (Yoga/Tai-Chi)</option>
+              <option value="intensiv">Bewegung: intensiv (Laufen/Kraft)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="woop-actions">
+          <button type="button" class="btn-next" id="generateBtn">Tagesplan erstellen</button>
+          <a class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;" href="index.html">Erst den Fragebogen ausfüllen →</a>
+        </div>
+      </div>
+
+      <!-- ---------- Live-Guide: wird gezeigt, sobald ein Plan gespeichert ist ---------- -->
+      <div id="guide" style="display:none;">
+        <header class="intro">
+          <span class="label" id="guideLabel">Tagesplan</span>
+          <h1 id="guideTitle">Dein Ablauf.</h1>
+          <p id="guideLede"></p>
+        </header>
+
+        <div class="day-tabs" id="dayTabs"></div>
+
+        <div class="baustein-list" id="dayBlocks"></div>
+
+        <div class="woop-actions">
+          <button type="button" class="btn-secondary" id="finishDayBtn">Tag abschließen → nächster Tag</button>
+          <button type="button" class="btn-ghost" id="newPlanBtn">Neuen Plan erstellen</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/content-data.js"></script>
+<script>
+const PLAN_KEY = 'retreat-tagesplan-v1';
+const QUIZ_KEY = 'retreat-quiz-result-v1';
+
+const setupEl = document.getElementById('setup');
+const guideEl = document.getElementById('guide');
+const quizInfo = document.getElementById('quizInfo');
+const manualFallback = document.getElementById('manualFallback');
+
+let quizResult = null;
+try { quizResult = JSON.parse(localStorage.getItem(QUIZ_KEY) || 'null'); } catch(e) {}
+
+if (quizResult) {
+  const ortLabel = { daheim: "daheim", camping: "auf dem Campingplatz", hotel: "im Hotel" }[quizResult.ort] || quizResult.ort;
+  const modusLabel = quizResult.modus === 'intensiv' ? "Intensiv-Modus" : "Alltags-Modus";
+  quizInfo.textContent = `Aus deinem Fragebogen: ${modusLabel}, ${ortLabel}. Passt das nicht mehr, einfach den Fragebogen neu ausfüllen.`;
+} else {
+  quizInfo.textContent = "Kein Fragebogen-Ergebnis gefunden.";
+  manualFallback.style.display = 'block';
+}
+
+function loadPlan() {
+  try { return JSON.parse(localStorage.getItem(PLAN_KEY) || 'null'); } catch(e) { return null; }
+}
+function savePlan(plan) {
+  try { localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); } catch(e) {}
+}
+
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const tage = Math.min(7, Math.max(1, parseInt(document.getElementById('tageInput').value, 10) || 1));
+  const wecken = document.getElementById('weckenInput').value || "07:00";
+  const modus = quizResult ? quizResult.modus : document.getElementById('modusSelect').value;
+  const bewegungTyp = quizResult ? quizResult.bewegung : document.getElementById('bewegungSelect').value;
+  const ort = quizResult ? quizResult.ort : null;
+
+  const days = generateTagesplan({ tage, wecken, modus, bewegungTyp });
+  const plan = { tage, wecken, modus, bewegungTyp, ort, days, currentDayIndex: 0, createdAt: Date.now() };
+  savePlan(plan);
+  renderGuide(plan);
+});
+
+/* --- Lookup-Hilfen: ausführliche Anleitung zu einem Block finden --- */
+function findRefLink(ref) {
+  if (!ref) return null;
+  if (ref === "woop.html") return { href: "woop.html", label: "Zum WOOP-Vordruck →" };
+  const pools = [
+    ["bausteine", typeof bausteine !== 'undefined' ? bausteine : []],
+    ["flexibleBausteine", typeof flexibleBausteine !== 'undefined' ? flexibleBausteine : []],
+    ["rezepte", typeof rezepte !== 'undefined' ? rezepte : []],
+  ];
+  for (const [, list] of pools) {
+    const hit = list.find(item => item.titel === ref);
+    if (hit) return { href: "begleitphase.html", label: "Ausführliche Anleitung in der Begleitphase →" };
+  }
+  return null;
+}
+
+function renderGuide(plan) {
+  setupEl.style.display = 'none';
+  guideEl.style.display = 'block';
+
+  document.getElementById('guideLede').textContent =
+    plan.modus === 'intensiv'
+      ? `${plan.tage} Tag(e) am Stück, ab ${plan.wecken} Uhr. Hak ab, was du geschafft hast — die App zeigt dir, was als Nächstes dran ist.`
+      : `${plan.tage} Tag(e) mit demselben kompakten Morgen-/Abend-Ablauf. Hak ab, was du geschafft hast.`;
+
+  const tabs = document.getElementById('dayTabs');
+  tabs.innerHTML = '';
+  plan.days.forEach((_, i) => {
+    const t = document.createElement('button');
+    t.type = 'button';
+    t.className = 'day-tab' + (i === plan.currentDayIndex ? ' active' : '');
+    t.textContent = 'Tag ' + (i + 1);
+    t.addEventListener('click', () => {
+      plan.currentDayIndex = i;
+      savePlan(plan);
+      renderGuide(plan);
+    });
+    tabs.appendChild(t);
+  });
+
+  const list = document.getElementById('dayBlocks');
+  list.innerHTML = '';
+  const blocks = plan.days[plan.currentDayIndex];
+
+  const firstOpenIdx = blocks.findIndex(b => !b.done);
+
+  blocks.forEach((b, idx) => {
+    const row = document.createElement('div');
+    row.className = 'plan-block' + (b.done ? ' done' : '') + (idx === firstOpenIdx ? ' current' : '');
+
+    const link = findRefLink(b.ref);
+
+    row.innerHTML = `
+      <label class="plan-check">
+        <input type="checkbox" ${b.done ? 'checked' : ''}>
+        <span class="plan-check-box"></span>
+      </label>
+      <div class="plan-block-body">
+        <div class="plan-block-head">
+          <span class="plan-time">${b.zeit}</span>
+          <span class="plan-title">${b.titel}</span>
+          <span class="plan-dauer">${b.dauer} Min</span>
+        </div>
+        <div class="plan-teaser">${b.teaser || ''}</div>
+        ${link ? `<a class="plan-link" href="${link.href}">${link.label}</a>` : ''}
+      </div>
+    `;
+
+    row.querySelector('input[type=checkbox]').addEventListener('change', (e) => {
+      b.done = e.target.checked;
+      savePlan(plan);
+      renderGuide(plan);
+    });
+
+    list.appendChild(row);
+  });
+
+  const finishBtn = document.getElementById('finishDayBtn');
+  const allDone = blocks.every(b => b.done);
+  const isLastDay = plan.currentDayIndex === plan.days.length - 1;
+  finishBtn.style.display = (isLastDay) ? 'none' : 'inline-flex';
+  finishBtn.disabled = !allDone;
+  finishBtn.style.opacity = allDone ? '1' : '.4';
+  finishBtn.onclick = () => {
+    plan.currentDayIndex = Math.min(plan.days.length - 1, plan.currentDayIndex + 1);
+    savePlan(plan);
+    renderGuide(plan);
+  };
+}
+
+document.getElementById('newPlanBtn').addEventListener('click', () => {
+  if (!confirm('Aktuellen Tagesplan und Fortschritt wirklich löschen?')) return;
+  localStorage.removeItem(PLAN_KEY);
+  guideEl.style.display = 'none';
+  setupEl.style.display = 'block';
+});
+
+const existingPlan = loadPlan();
+if (existingPlan) renderGuide(existingPlan);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>

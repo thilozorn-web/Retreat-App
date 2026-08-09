@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retreat · WOOP-Vordruck</title>
+<meta name="theme-color" content="#EFEDE4">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="spine" aria-label="Kneipp-Säulen – roter Faden durch die App">
+    <div class="spine-line"></div>
+    <div class="node" data-pillar="wasser"><span class="node-tip">Wasser</span></div>
+    <div class="node" data-pillar="bewegung"><span class="node-tip">Bewegung</span></div>
+    <div class="node" data-pillar="ernaehrung"><span class="node-tip">Ernährung</span></div>
+    <div class="node" data-pillar="heilpflanzen"><span class="node-tip">Heilpflanzen</span></div>
+    <div class="node" data-pillar="lebensordnung" data-active="true"><span class="node-tip">Lebensordnung</span></div>
+  </nav>
+
+  <main class="stage">
+    <div class="card" style="max-width:600px;">
+      <a class="back-link" href="begleitphase.html">← zurück zur Begleitphase</a>
+
+      <header class="intro">
+        <span class="label">Zieldefinition</span>
+        <h1>WOOP-Vordruck.</h1>
+        <p>Wunsch, Ergebnis, Hindernis, Plan. Einmal ausführlich am Ende des Retreats – die Eingaben bleiben offline auf diesem Gerät gespeichert, damit du später weiterschreiben oder sie noch einmal lesen kannst.</p>
+      </header>
+
+      <div class="modus-note">Alles bleibt lokal auf diesem Gerät (kein Server, kein Konto). Zum Sichern oder Mitnehmen: unten drucken oder den leeren PDF-Vordruck herunterladen.</div>
+
+      <form id="woopForm">
+
+        <div class="woop-step">
+          <div class="woop-step-head"><span class="woop-letter">W</span><h3>Wunsch</h3></div>
+          <p class="woop-hint">Was willst du in den nächsten Wochen/Monaten erreichen? Konkret, für dich bedeutsam, realistisch aber herausfordernd.</p>
+          <textarea id="w" name="w" placeholder="Mein Wunsch ist …"></textarea>
+        </div>
+
+        <div class="woop-step">
+          <div class="woop-step-head"><span class="woop-letter">O</span><h3>Outcome / Ergebnis</h3></div>
+          <p class="woop-hint">Der Wunsch ist erfüllt – wie fühlt sich das an? Was verändert sich konkret in deinem Alltag? Mal es dir wirklich aus.</p>
+          <textarea id="o1" name="o1" placeholder="Wenn es erreicht ist, dann …"></textarea>
+        </div>
+
+        <div class="woop-step">
+          <div class="woop-step-head"><span class="woop-letter">O</span><h3>Obstacle / Hindernis</h3></div>
+          <p class="woop-hint">Was in dir selbst – nicht äußere Umstände – wird dir am ehesten im Weg stehen? Ein Gedanke, eine Gewohnheit, ein Gefühl.</p>
+          <textarea id="o2" name="o2" placeholder="Das größte Hindernis in mir ist …"></textarea>
+        </div>
+
+        <div class="woop-step">
+          <div class="woop-step-head"><span class="woop-letter">P</span><h3>Plan</h3></div>
+          <p class="woop-hint">Dein Wenn-Dann-Plan – der wichtigste Teil, macht die Absicht automatisch abrufbar.</p>
+          <textarea id="p" name="p" placeholder="Wenn [Hindernis tritt auf], dann werde ich …"></textarea>
+        </div>
+
+        <div class="woop-step">
+          <div class="woop-step-head"><h3 style="margin-left:0;">Danach: 3–5 Gewohnheiten für den Alltag</h3></div>
+          <p class="woop-hint">Was nimmst du dir konkret aus dem Retreat mit?</p>
+          <div class="woop-habits">
+            <input type="text" class="habit" placeholder="Gewohnheit 1">
+            <input type="text" class="habit" placeholder="Gewohnheit 2">
+            <input type="text" class="habit" placeholder="Gewohnheit 3">
+            <input type="text" class="habit" placeholder="Gewohnheit 4 (optional)">
+            <input type="text" class="habit" placeholder="Gewohnheit 5 (optional)">
+          </div>
+        </div>
+
+      </form>
+
+      <div class="woop-actions">
+        <button type="button" class="btn-next" id="saveBtn">Speichern</button>
+        <button type="button" class="btn-secondary" id="printBtn">Drucken</button>
+        <button type="button" class="btn-ghost" id="resetBtn">Alles zurücksetzen</button>
+      </div>
+      <div class="woop-saved-note" id="savedNote"></div>
+
+      <p class="pdf-link-row" style="margin-top:28px; font-size:13px; color:var(--ink-soft);">
+        Lieber von Hand ausfüllen? <a href="woop-vordruck.pdf" style="color:var(--water);">Leeren PDF-Vordruck herunterladen →</a>
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+const KEY = 'retreat-woop-v1';
+const fields = ['w','o1','o2','p'];
+const form = document.getElementById('woopForm');
+const savedNote = document.getElementById('savedNote');
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    fields.forEach(id => {
+      if (data[id]) document.getElementById(id).value = data[id];
+    });
+    const habitInputs = form.querySelectorAll('.habit');
+    if (Array.isArray(data.habits)) {
+      habitInputs.forEach((el, i) => { if (data.habits[i]) el.value = data.habits[i]; });
+    }
+    if (data.savedAt) {
+      savedNote.textContent = 'Zuletzt gespeichert: ' + new Date(data.savedAt).toLocaleString('de-DE');
+    }
+  } catch (e) { /* Speicher nicht verfügbar oder leer – einfach mit leerem Formular starten */ }
+}
+
+function saveData() {
+  const data = {};
+  fields.forEach(id => { data[id] = document.getElementById(id).value; });
+  data.habits = Array.from(form.querySelectorAll('.habit')).map(el => el.value);
+  data.savedAt = Date.now();
+  try {
+    localStorage.setItem(KEY, JSON.stringify(data));
+    savedNote.textContent = 'Gespeichert · ' + new Date(data.savedAt).toLocaleString('de-DE');
+  } catch (e) {
+    savedNote.textContent = 'Konnte nicht lokal gespeichert werden (Speicher evtl. voll oder deaktiviert).';
+  }
+}
+
+document.getElementById('saveBtn').addEventListener('click', saveData);
+document.getElementById('printBtn').addEventListener('click', () => { saveData(); window.print(); });
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('Wirklich alle Eingaben löschen?')) return;
+  localStorage.removeItem(KEY);
+  form.reset();
+  savedNote.textContent = 'Zurückgesetzt.';
+});
+
+loadData();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
