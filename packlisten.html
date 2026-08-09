@@ -125,9 +125,19 @@ document.getElementById('biwakBox').innerHTML = `
   `).join('')}
 `;
 
+/* Service Worker: registrieren + bei neuer Version automatisch neu laden,
+   statt eine veraltete gecachte Version stehen zu lassen. */
 if ('serviceWorker' in navigator) {
+  let reloadedOnce = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloadedOnce) return;
+    reloadedOnce = true;
+    window.location.reload();
+  });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      reg.update().catch(()=>{});
+    }).catch(()=>{});
   });
 }
 </script>
